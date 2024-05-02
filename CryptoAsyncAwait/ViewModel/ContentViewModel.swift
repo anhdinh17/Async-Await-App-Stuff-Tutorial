@@ -7,9 +7,10 @@
 
 import Foundation
 
+@MainActor
 class ContentViewModel: ObservableObject {
     @Published var coins = [Coin]()
-    @Published var error: Error?
+    @Published var error: CoinError?
     
     let BASE_URL = "https://api.coingecko.com/api/v3/coins/"
     
@@ -18,6 +19,11 @@ class ContentViewModel: ObservableObject {
     }
     
     init() {
+        loadData()
+    }
+    
+    func handleRefresh() {
+        coins.removeAll()
         loadData()
     }
 }
@@ -38,14 +44,43 @@ extension ContentViewModel {
             guard (response as? HTTPURLResponse)?.statusCode == 200 else { throw CoinError.serverError }
             guard let coins = try? JSONDecoder().decode([Coin].self, from: data) else { throw CoinError.invalidData }
             self.coins = coins
+        } catch CoinError.invalidData {
+            self.error = CoinError.invalidData
+        } catch CoinError.serverError {
+            self.error = CoinError.serverError
+        } catch CoinError.invalidURL {
+            self.error = CoinError.invalidURL
         } catch {
-            self.error = error
+            // Default catch error
+            // Should have this one in case error doesn't fall into other cases.
+            // It happened when I tried to catch each case of error.
+            self.error = CoinError.unkown(error)
         }
     }
     
     func loadData() {
         Task {
             try await fetchCoinsAsync()
+        }
+    }
+    
+    // If we don't catch error in fetchCoinsAsync(),
+    // we can catch it here
+    func loadDataWithCatchError() {
+        Task {
+            do {
+                try await fetchCoinsAsync()
+            } catch CoinError.invalidData {
+                print("Invalid data")
+            } catch CoinError.serverError {
+                self.error = CoinError.serverError
+            } catch CoinError.invalidURL {
+                print("Invalid URL")
+            } catch {
+                // Default catch error
+                // Should have this one in case error doesn't fall into other cases.
+                self.error = CoinError.unkown(error)
+            }
         }
     }
 }

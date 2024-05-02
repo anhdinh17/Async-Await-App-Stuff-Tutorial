@@ -18,6 +18,11 @@ struct ContentView: View {
                     CoinRowView(coin: coin)
                 }
             }
+            // Refresh the list by pulling down
+            .refreshable {
+                viewModel.handleRefresh()
+            }
+            
             .onReceive(viewModel.$error, perform: { error in
                 // error is viewModel.error
                 if error != nil {
@@ -29,7 +34,8 @@ struct ContentView: View {
                     
                 }
             }, message: {
-                Text(viewModel.error?.localizedDescription ?? "")
+                //Text(viewModel.error?.localizedDescription ?? "")
+                Text(viewModel.error?.errorDescription ?? "")
             })
             .navigationTitle("Live Prices")
         }

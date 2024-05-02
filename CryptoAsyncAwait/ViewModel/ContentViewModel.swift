@@ -9,6 +9,7 @@ import Foundation
 
 class ContentViewModel: ObservableObject {
     @Published var coins = [Coin]()
+    @Published var error: Error?
     
     let BASE_URL = "https://api.coingecko.com/api/v3/coins/"
     
@@ -27,15 +28,19 @@ extension ContentViewModel {
     // This is equal to the block DispatchQueue.main.async{}
     @MainActor
     func fetchCoinsAsync() async throws {
-        guard let url = URL(string: urlString) else {
-            print("DEBUG: Invalid URL")
-            return
+        do {
+            guard let url = URL(string: urlString) else {
+                // Don't need "return".
+                // What after "throw" won't exec, "throw" is like "return"
+                throw CoinError.invalidURL
+            }
+            let (data, response) = try await URLSession.shared.data(from: url)
+            guard (response as? HTTPURLResponse)?.statusCode == 200 else { throw CoinError.serverError }
+            guard let coins = try? JSONDecoder().decode([Coin].self, from: data) else { throw CoinError.invalidData }
+            self.coins = coins
+        } catch {
+            self.error = error
         }
-        
-        let (data, response) = try await URLSession.shared.data(from: url)
-        guard (response as? HTTPURLResponse)?.statusCode == 200 else { return }
-        guard let coins = try? JSONDecoder().decode([Coin].self, from: data) else { return }
-        self.coins = coins
     }
     
     func loadData() {

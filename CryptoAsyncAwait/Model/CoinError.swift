@@ -16,7 +16,7 @@ enum CoinError: Error, LocalizedError {
     var errorDescription: String? {
         switch self {
         case .invalidURL:
-            return ""
+            return "There is invalid URL error. Please try again later"
         case .serverError:
             return "There was an error with the server. Please try again later"
         case .invalidData:

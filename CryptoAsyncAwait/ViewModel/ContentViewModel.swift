@@ -19,12 +19,12 @@ class ContentViewModel: ObservableObject {
     }
     
     init() {
-        loadData()
+        loadDataWithCatchError()
     }
     
     func handleRefresh() {
         coins.removeAll()
-        loadData()
+        loadDataWithCatchError()
     }
 }
 //MARK: - Async/Await
@@ -59,6 +59,19 @@ extension ContentViewModel {
         }
     }
     
+    @MainActor
+    func fetchCoinsAsyncWithoutErrorHandling() async throws {
+        guard let url = URL(string: urlString) else {
+            // Don't need "return".
+            // What after "throw" won't exec, "throw" is like "return"
+            throw CoinError.invalidURL
+        }
+        let (data, response) = try await URLSession.shared.data(from: url)
+        guard (response as? HTTPURLResponse)?.statusCode == 200 else { throw CoinError.serverError }
+        guard let coins = try? JSONDecoder().decode([Coin].self, from: data) else { throw CoinError.invalidData }
+        self.coins = coins
+    }
+    
     func loadData() {
         Task {
             try await fetchCoinsAsync()
@@ -70,13 +83,13 @@ extension ContentViewModel {
     func loadDataWithCatchError() {
         Task {
             do {
-                try await fetchCoinsAsync()
+                try await fetchCoinsAsyncWithoutErrorHandling()
             } catch CoinError.invalidData {
-                print("Invalid data")
+                self.error = CoinError.invalidData
             } catch CoinError.serverError {
                 self.error = CoinError.serverError
             } catch CoinError.invalidURL {
-                print("Invalid URL")
+                self.error = CoinError.invalidURL
             } catch {
                 // Default catch error
                 // Should have this one in case error doesn't fall into other cases.

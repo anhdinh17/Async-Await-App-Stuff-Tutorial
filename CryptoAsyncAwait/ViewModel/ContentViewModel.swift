@@ -53,7 +53,8 @@ extension ContentViewModel {
         } catch {
             // Default catch error
             // Should have this one in case error doesn't fall into other cases.
-            // It happened when I tried to catch each case of error.
+            // It happened when the code gets error and
+            // I tried to check the error but seeing nothing falls into other cases.
             self.error = CoinError.unkown(error)
         }
     }
